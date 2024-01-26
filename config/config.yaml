@@ -1,0 +1,77 @@
+# THIS IS A TEMPLATE! DO NOT COMMIT THIS TO YOUR REPO. YOU NEED TO ADD `config*` to the .gitignore file
+
+
+
+
+
+# https://help.redcanary.com/hc/en-us/articles/1500008439282-Canary-Exporter-Set-up-
+
+customer_identifier: rcfle
+
+input:
+  # You can export either 'native' or 'standardized' data from Red Canary.
+  # 
+  # Native is data formatted as it was received by the EDR/EPP platform. This format is ideal when using
+  # third-party applications that expect data from a specific product, such as Carbon Black Response or
+  # CrowdStrike Falcon
+  # 
+  # Standardized is data formatted according to Red Canary's standardized format. This format tends to
+  # be easier to read and parse, and is product-agnostic.
+  # 
+  stream_name: "native" # native or standardized? If native, current (uncommented) output block. Else, comment out currently uncommented output block and uncomment currently commented output block.
+
+  aws_region: us-east-2
+  aws_access_key_id: ""
+  aws_secret_access_key: ""
+
+  # 
+  # This is optional and filters data in S3 before it is returned to the exporter. 
+  # Learn more about S3 SELECT syntax at https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-glacier-select-sql-reference.html
+  # 
+  # s3_select_where: "S3Object.is_shell_activity = true"
+
+# 
+# Optional injection of endpoint metadata into exported records
+# 
+# The max number of endpoint metadat records to store in in-memory cache (default: 1000)
+  endpoint_cache_size: 1000
+# 
+# Your Red Canary API key used to retrieve endpoint metadata for each exported record 
+  red_canary_authentication_token: ""
+
+# If you use native format, the outputs and event type section should look similar to the block below. 
+outputs:
+  - file:
+      directory: /output 
+      max_size_bytes: 10000000
+      max_files: 4
+      export_only_where:
+        type:
+          - ingress.event.regmod
+          - ingress.event.filemod
+          - ingress.event.netconn
+          - ingress.event.procstart
+          - ingress.event.module
+          - ingress.event.childproc
+          - ingress.event.crossprocopen
+ 
+
+# Note: If you comment out the "export_only_where" and below sections  
+# or you do not specify a "type," Canary Exporter will send all Event Types. 
+
+########
+
+# If you use the standardized format, the outputs and event type section should look similar to this:  
+# outputs:
+#   - file:
+#       directory: /output
+#       max_size_bytes: 10000000
+#       max_files: 2
+#       export_only_where:
+#         event_type_cd:
+#           - process_start
+#           - child_process
+#           - binary   
+
+# Note: If you comment out the "export_only_where" and below sections 
+# or you do not specify a "type," Canary Exporter will send all Event Types. 
