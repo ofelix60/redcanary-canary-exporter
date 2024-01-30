@@ -1,9 +1,3 @@
-# THIS IS A TEMPLATE! DO NOT COMMIT THIS TO YOUR REPO. YOU NEED TO ADD `config*` to the .gitignore file
-
-
-
-
-
 # https://help.redcanary.com/hc/en-us/articles/1500008439282-Canary-Exporter-Set-up-
 
 customer_identifier: rcfle
