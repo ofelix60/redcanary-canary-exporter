@@ -1,9 +1,8 @@
-# # NOT DONE!!!
 image: python:3.11
 
 pipelines:
   default:
-    - step: 
+    - step:
         name: Build and Push Docker Image to AWS ECR
         deployment: test
         condition:
@@ -15,9 +14,9 @@ pipelines:
         # See https://cirrostratus.cloud/deploying-cdk-to-aws-using-bitbucket-pipelines-and-oidc
         # and https://support.atlassian.com/bitbucket-cloud/docs/deploy-on-aws-using-bitbucket-pipelines-openid-connect/
         oidc: true
-        # https://support.atlassian.com/bitbucket-cloud/docs/use-aws-ecr-images-in-pipelines-with-openid-connect/ 
+        # https://support.atlassian.com/bitbucket-cloud/docs/use-aws-ecr-images-in-pipelines-with-openid-connect/
         services:
-          - docker   
+          - docker
         caches:
           - pip
           - node
@@ -36,7 +35,6 @@ pipelines:
 
           # Install AWS CLI
           - pip install awscli
-          
 
           # Authentiate Docker to your ECR registry
           - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
