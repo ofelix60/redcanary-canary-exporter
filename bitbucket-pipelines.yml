@@ -1,39 +1,56 @@
 # # NOT DONE!!!
-# image: amazonlinux:latest
+image: python:3.11
 
-# pipelines:
-#   default:
-#     - step:
-#         name: Build and Push Docker Image to AWS ECR
-#         deployment: test
-#         condition:
-#           changesets:
-#             includePaths:
-#               - Dockerfile
-#               - config/**
-#         # OIDC is a more secure method of managing access to AWS than supplying IAM credentials
-#         # See https://cirrostratus.cloud/deploying-cdk-to-aws-using-bitbucket-pipelines-and-oidc
-#         # and https://support.atlassian.com/bitbucket-cloud/docs/deploy-on-aws-using-bitbucket-pipelines-openid-connect/
-#         oidc: true
-#         caches:
-#           - pip
-#           - node
-#         script:
-#           - export AWS_REGION=us-west-2
-#           - export AWS_ROLE_ARN=$DEV_AWS_OIDC_ROLE_ARN
-#           - export AWS_WEB_IDENTITY_TOKEN_FILE=$(pwd)/web-identity-token
-#           - echo $BITBUCKET_STEP_OIDC_TOKEN > $(pwd)/web-identity-token
+pipelines:
+  default:
+    - step: 
+        name: Build and Push Docker Image to AWS ECR
+        deployment: test
+        condition:
+          changesets:
+            includePaths:
+              - Dockerfile
+              - config/**
+        # OIDC is a more secure method of managing access to AWS than supplying IAM credentials
+        # See https://cirrostratus.cloud/deploying-cdk-to-aws-using-bitbucket-pipelines-and-oidc
+        # and https://support.atlassian.com/bitbucket-cloud/docs/deploy-on-aws-using-bitbucket-pipelines-openid-connect/
+        oidc: true
+        # https://support.atlassian.com/bitbucket-cloud/docs/use-aws-ecr-images-in-pipelines-with-openid-connect/ 
+        services:
+          - docker   
+        caches:
+          - pip
+          - node
+        script:
+          - export AWS_REGION=us-west-2
+          - export AWS_ROLE_ARN=$DEV_AWS_OIDC_ROLE_ARN
+          - export AWS_WEB_IDENTITY_TOKEN_FILE=$(pwd)/web-identity-token
+          - echo $BITBUCKET_STEP_OIDC_TOKEN > $(pwd)/web-identity-token
+          - export ECR_REGISTRY=FILL_IN_THE_BLANK
+          - export IMAGE_TAG=${BITBUCKET_COMMIT:0:8} # Use the first 8 characters of the commit hash to tag image
+          - export ECS_CLUSTER_NAME=""
+          - export ECS_SERVICE_NAME=""
+          - export RED_CANARY_API_KEY=""
+          - export RED_CANARY_ORG_ID=""
+          - export RED_CANARY_DATA_TYPE=""
 
-#           # Install Docker and AWS CLI
-#           - sudo yum remove awscli
-#           - sudo dnf update
-#           - sudo dnf install -y docker
-#           - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-#           - unzip awscliv2.zip
-#           - sudo ./aws/install
+          # Install AWS CLI
+          - pip install awscli
+          
 
-#           # Authentiate Docker to your ECR registry
-#           # Build and tag the Docker image
-#           # Push the Docker image to ECR
-# options:
-#   docker: true
+          # Authentiate Docker to your ECR registry
+          - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+          # Build and tag the Docker image
+          - docker build -t $ECR_REGISTRY/my-canary-exporter:${IMAGE_TAG} .
+          # Push the Docker image to ECR
+          - pipe: atlassian/aws-ecr-push-image:2.3.0
+            variables:
+              AWS_DEFAULT_REGION: $AWS_REGION
+              AWS_OIDC_ROLE_ARN: $AWS_ROLE_ARN
+              IMAGE_NAME: my-docker-image
+              TAGS: $IMAGE_TAG
+
+          # Update ECS service with the new Docker image
+          - aws ecs update-service --cluster $ECS_CLUSTER_NAME --service $ECS_SERVICE_NAME --task-definition $ECS_SERVICE_NAME --force-new-deployment
+options:
+  docker: true
